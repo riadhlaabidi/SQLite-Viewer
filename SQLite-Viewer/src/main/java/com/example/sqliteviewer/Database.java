@@ -2,12 +2,11 @@ package com.example.sqliteviewer;
 
 import org.sqlite.SQLiteDataSource;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Database implements AutoCloseable {
 
@@ -29,6 +28,10 @@ public class Database implements AutoCloseable {
         connection = dataSource.getConnection();
     }
 
+    public Connection getConnexion() {
+        return this.connection;
+    }
+
     public List<String> getTables() throws SQLException {
         List<String> list = new ArrayList<>();
         try (Statement statement = connection.createStatement()) {
@@ -39,6 +42,31 @@ public class Database implements AutoCloseable {
             }
             return list;
         }
+    }
+
+    public DataTableModel executeQuery(String query, String table) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery(query);
+            ResultSetMetaData metaData = resultSet.getMetaData();
+
+            int columnCount = metaData.getColumnCount();
+            String[] columns = new String[columnCount];
+            for (int i = 0; i < metaData.getColumnCount(); i++) {
+                columns[i] = metaData.getColumnName(i + 1);
+            }
+
+            Map<Integer, Object[]> data = new HashMap<>();
+            int i = 0;
+            while (resultSet.next()) {
+                Object[] row = new Object[columnCount];
+                for (int j = 0; j < columnCount; j++) {
+                    row[j] = resultSet.getObject(j + 1);
+                }
+                data.put(i++, row);
+            }
+            return new DataTableModel(columns, data);
+        }
+
     }
 
     @Override

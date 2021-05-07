@@ -8,9 +8,9 @@ public class SQLiteViewer extends JFrame {
 
     public SQLiteViewer() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(700, 900);
-        setLayout(new BorderLayout());
-        setResizable(false);
+        setSize(700, 700);
+        setResizable(true);
+        setLayout(new BorderLayout(0, 16));
         setLocationRelativeTo(null);
         setTitle("SQLite Viewer");
         initComponents();
@@ -88,17 +88,13 @@ public class SQLiteViewer extends JFrame {
         queryTextArea.setName("QueryTextArea");
         queryTextArea.setRows(5);
         queryTextArea.setFont(jetbrainsMonoFont.deriveFont(Font.PLAIN));
-        queryTextArea.setLineWrap(true);
         queryTextArea.setWrapStyleWord(true);
         constraints.fill = GridBagConstraints.BOTH;
         constraints.anchor = GridBagConstraints.CENTER;
         constraints.insets = topLeft8Padding;
         constraints.weightx = 1.0;
         constraints.gridx = 1;
-        JScrollPane queryTextScroll = new JScrollPane(
-                queryTextArea,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        JScrollPane queryTextScroll = new JScrollPane(queryTextArea);
         topFormPanel.add(queryTextScroll, constraints);
 
         JButton executeQueryButton = new JButton("Execute");
@@ -111,7 +107,16 @@ public class SQLiteViewer extends JFrame {
         constraints.gridx = 2;
         topFormPanel.add(executeQueryButton, constraints);
 
-        add(topFormPanel, BorderLayout.NORTH);
+        add(topFormPanel, BorderLayout.PAGE_START);
+
+        JTable table = new JTable();
+        table.setName("Table");
+        table.setFont(jetbrainsMonoFont.deriveFont(Font.PLAIN));
+        table.setFillsViewportHeight(true);
+        JScrollPane tableScrollPane = new JScrollPane(table);
+        tableScrollPane.setBorder(new EmptyBorder(8, 8, 8, 8));
+        add(tableScrollPane, BorderLayout.CENTER);
+
 
         openFileButton.addActionListener(event -> {
             try (Database database = new Database(fileNameTextField.getText())) {
@@ -124,7 +129,19 @@ public class SQLiteViewer extends JFrame {
         });
 
         tableSelect.addItemListener(event -> {
-            queryTextArea.setText(String.format(Database.ALL_ROWS_QUERY,event.getItem().toString()));
+            queryTextArea.setText(String.format(Database.ALL_ROWS_QUERY, event.getItem().toString()));
+        });
+
+        executeQueryButton.addActionListener(event -> {
+            try (Database database = new Database(fileNameTextField.getText())) {
+                DataTableModel tableModel = database.executeQuery(
+                        queryTextArea.getText(),
+                        (String) tableSelect.getSelectedItem()
+                );
+                table.setModel(tableModel);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
     }
 }
