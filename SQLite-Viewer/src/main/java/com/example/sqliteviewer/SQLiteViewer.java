@@ -157,10 +157,7 @@ public class SQLiteViewer extends JFrame {
 
         executeQueryButton.addActionListener(event -> {
             try (Database database = new Database(fileNameTextField.getText())) {
-                DataTableModel tableModel = database.executeQuery(
-                        queryTextArea.getText(),
-                        (String) tableSelect.getSelectedItem()
-                );
+                DataTableModel tableModel = database.executeQuery(queryTextArea.getText());
                 table.setModel(tableModel);
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(

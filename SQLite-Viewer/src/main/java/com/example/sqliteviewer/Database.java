@@ -44,7 +44,7 @@ public class Database implements AutoCloseable {
         }
     }
 
-    public DataTableModel executeQuery(String query, String table) throws SQLException {
+    public DataTableModel executeQuery(String query) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             ResultSet resultSet = statement.executeQuery(query);
             ResultSetMetaData metaData = resultSet.getMetaData();
