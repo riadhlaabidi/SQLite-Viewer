@@ -3,6 +3,11 @@ package com.example.sqliteviewer;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.util.HashMap;
 
 public class SQLiteViewer extends JFrame {
 
@@ -89,6 +94,7 @@ public class SQLiteViewer extends JFrame {
         queryTextArea.setRows(5);
         queryTextArea.setFont(jetbrainsMonoFont.deriveFont(Font.PLAIN));
         queryTextArea.setWrapStyleWord(true);
+        queryTextArea.setEnabled(false);
         constraints.fill = GridBagConstraints.BOTH;
         constraints.anchor = GridBagConstraints.CENTER;
         constraints.insets = topLeft8Padding;
@@ -100,6 +106,7 @@ public class SQLiteViewer extends JFrame {
         JButton executeQueryButton = new JButton("Execute");
         executeQueryButton.setName("ExecuteQueryButton");
         executeQueryButton.setFont(jetbrainsMonoFont);
+        executeQueryButton.setEnabled(false);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.anchor = GridBagConstraints.NORTH;
         constraints.insets = topLeft8Padding;
@@ -119,12 +126,28 @@ public class SQLiteViewer extends JFrame {
 
 
         openFileButton.addActionListener(event -> {
-            try (Database database = new Database(fileNameTextField.getText())) {
+            Path path = Paths.get(fileNameTextField.getText());
+            if (Files.exists(path)) {
+                try (Database database = new Database(fileNameTextField.getText())) {
+                    tableSelect.removeAllItems();
+                    database.getTables().forEach(tableSelect::addItem);
+                    queryTextArea.setText(String.format(Database.ALL_ROWS_QUERY, tableSelect.getSelectedItem()));
+                    queryTextArea.setEnabled(true);
+                    executeQueryButton.setEnabled(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else {
+                table.setModel(new DataTableModel(new String[0], new HashMap<>()));
                 tableSelect.removeAllItems();
-                database.getTables().forEach(tableSelect::addItem);
-                queryTextArea.setText(String.format(Database.ALL_ROWS_QUERY, tableSelect.getSelectedItem()));
-            } catch (Exception e) {
-                e.printStackTrace();
+                queryTextArea.setText(null);
+                queryTextArea.setEnabled(false);
+                executeQueryButton.setEnabled(false);
+                JOptionPane.showMessageDialog(
+                        new Frame(),
+                        "File doesn't exist!",
+                        "File Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -139,6 +162,12 @@ public class SQLiteViewer extends JFrame {
                         (String) tableSelect.getSelectedItem()
                 );
                 table.setModel(tableModel);
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(
+                        new Frame(),
+                        e.getMessage(),
+                        "SQL error",
+                        JOptionPane.ERROR_MESSAGE);
             } catch (Exception e) {
                 e.printStackTrace();
             }
