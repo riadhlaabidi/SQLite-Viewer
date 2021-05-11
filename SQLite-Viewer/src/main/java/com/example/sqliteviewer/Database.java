@@ -2,6 +2,7 @@ package com.example.sqliteviewer;
 
 import org.sqlite.SQLiteDataSource;
 
+import javax.swing.table.TableModel;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,10 +13,6 @@ public class Database implements AutoCloseable {
 
     public static final String ALL_ROWS_QUERY = "SELECT * FROM %s;";
 
-    private static final String DB_TABLES_QUERY = "SELECT name FROM sqlite_master " +
-            "WHERE type ='table' AND name NOT LIKE 'sqlite_%'";
-    private static final String URL = "jdbc:sqlite:%s";
-
     private Connection connection;
 
     public Database(String fileName) throws SQLException {
@@ -23,19 +20,18 @@ public class Database implements AutoCloseable {
     }
 
     private void connect(String fileName) throws SQLException {
+        final String url = "jdbc:sqlite:%s";
         SQLiteDataSource dataSource = new SQLiteDataSource();
-        dataSource.setUrl(String.format(URL, fileName));
+        dataSource.setUrl(String.format(url, fileName));
         connection = dataSource.getConnection();
     }
 
-    public Connection getConnexion() {
-        return this.connection;
-    }
-
-    public List<String> getTables() throws SQLException {
+    public List<String> getTableNames() throws SQLException {
+        final String query = "SELECT name FROM sqlite_master " +
+                "WHERE type ='table' AND name NOT LIKE 'sqlite_%'";
         List<String> list = new ArrayList<>();
         try (Statement statement = connection.createStatement()) {
-            ResultSet resultSet = statement.executeQuery(DB_TABLES_QUERY);
+            ResultSet resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
                 String name = resultSet.getString("name");
                 list.add(name);
@@ -44,7 +40,7 @@ public class Database implements AutoCloseable {
         }
     }
 
-    public DataTableModel executeQuery(String query) throws SQLException {
+    public TableModel getTableModel(String query) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             ResultSet resultSet = statement.executeQuery(query);
             ResultSetMetaData metaData = resultSet.getMetaData();
@@ -73,4 +69,5 @@ public class Database implements AutoCloseable {
     public void close() throws Exception {
         this.connection.close();
     }
+
 }

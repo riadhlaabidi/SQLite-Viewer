@@ -1,13 +1,14 @@
 package com.example.sqliteviewer;
 
+import com.example.sqliteviewer.workers.DataLoader;
+import com.example.sqliteviewer.workers.TableNamesLoader;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
-import java.util.HashMap;
 
 public class SQLiteViewer extends JFrame {
 
@@ -15,7 +16,7 @@ public class SQLiteViewer extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(700, 700);
         setResizable(true);
-        setLayout(new BorderLayout(0, 16));
+        setLayout(new BorderLayout());
         setLocationRelativeTo(null);
         setTitle("SQLite Viewer");
         initComponents();
@@ -116,58 +117,38 @@ public class SQLiteViewer extends JFrame {
 
         add(topFormPanel, BorderLayout.PAGE_START);
 
-        JTable table = new JTable();
-        table.setName("Table");
-        table.setFont(jetbrainsMonoFont.deriveFont(Font.PLAIN));
-        table.setFillsViewportHeight(true);
-        JScrollPane tableScrollPane = new JScrollPane(table);
+        JTable dataTable = new JTable();
+        dataTable.setName("Table");
+        dataTable.setFont(jetbrainsMonoFont.deriveFont(Font.PLAIN));
+        dataTable.setFillsViewportHeight(true);
+        JScrollPane tableScrollPane = new JScrollPane(dataTable);
         tableScrollPane.setBorder(new EmptyBorder(8, 8, 8, 8));
         add(tableScrollPane, BorderLayout.CENTER);
 
 
         openFileButton.addActionListener(event -> {
-            Path path = Paths.get(fileNameTextField.getText());
-            if (Files.exists(path)) {
-                try (Database database = new Database(fileNameTextField.getText())) {
-                    tableSelect.removeAllItems();
-                    database.getTables().forEach(tableSelect::addItem);
-                    queryTextArea.setText(String.format(Database.ALL_ROWS_QUERY, tableSelect.getSelectedItem()));
-                    queryTextArea.setEnabled(true);
-                    executeQueryButton.setEnabled(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            String fileName = fileNameTextField.getText();
+            if (Files.exists(Paths.get(fileName))) {
+                new TableNamesLoader(fileName, tableSelect).execute();
+                queryTextArea.setEnabled(true);
+                executeQueryButton.setEnabled(true);
+                queryTextArea.setText(String.format(Database.ALL_ROWS_QUERY, tableSelect.getSelectedItem()));
             } else {
-                table.setModel(new DataTableModel(new String[0], new HashMap<>()));
                 tableSelect.removeAllItems();
                 queryTextArea.setText(null);
                 queryTextArea.setEnabled(false);
                 executeQueryButton.setEnabled(false);
-                JOptionPane.showMessageDialog(
-                        new Frame(),
-                        "File doesn't exist!",
-                        "File Error",
-                        JOptionPane.ERROR_MESSAGE);
+                dataTable.setModel(new DefaultTableModel());
+                JOptionPane.showMessageDialog(new Frame(), "File doesn't exist!", "File Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        tableSelect.addItemListener(event -> {
-            queryTextArea.setText(String.format(Database.ALL_ROWS_QUERY, event.getItem().toString()));
-        });
+        tableSelect.addItemListener(event -> queryTextArea.setText(
+                String.format(Database.ALL_ROWS_QUERY, event.getItem().toString())));
 
-        executeQueryButton.addActionListener(event -> {
-            try (Database database = new Database(fileNameTextField.getText())) {
-                DataTableModel tableModel = database.executeQuery(queryTextArea.getText());
-                table.setModel(tableModel);
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(
-                        new Frame(),
-                        e.getMessage(),
-                        "SQL error",
-                        JOptionPane.ERROR_MESSAGE);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        executeQueryButton.addActionListener(event -> new DataLoader(
+                fileNameTextField.getText(),
+                queryTextArea.getText(),
+                dataTable).execute());
     }
 }
