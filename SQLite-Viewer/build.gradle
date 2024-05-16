@@ -31,5 +31,5 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClass = 'com.example.sqliteviewer.App'
+    mainClass = 'com.example.sqliteviewer.ApplicationRunner'
 }
